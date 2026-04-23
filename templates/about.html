@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - AI Text Detector</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i data-lucide="brain"></i>
+                    <span class="logo-text">AI Text Detector</span>
+                </div>
+                <button class="collapse-btn" id="collapse-btn">
+                    <i data-lucide="chevrons-left"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('index') }}" class="nav-item">
+                    <i data-lucide="home"></i>
+                    <span class="nav-text">Home</span>
+                </a>
+                <a href="{{ url_for('about') }}" class="nav-item active">
+                    <i data-lucide="info"></i>
+                    <span class="nav-text">About</span>
+                </a>
+                <a href="{{ url_for('index') }}#new" class="nav-item" id="new-chat-btn">
+                    <i data-lucide="message-square-plus"></i>
+                    <span class="nav-text">New Chat</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i data-lucide="folder"></i>
+                    <span class="nav-text">Projects</span>
+                </a>
+                <a href="#" class="nav-item" id="recents-btn">
+                    <i data-lucide="history"></i>
+                    <span class="nav-text">Recents</span>
+                </a>
+            </nav>
+
+            <div class="recents-panel" id="recents-panel" style="display: none;">
+                <div class="recents-header">
+                    <span>Recent Scans</span>
+                    <button id="clear-recents" title="Clear All">
+                        <i data-lucide="trash-2"></i>
+                    </button>
+                </div>
+                <div class="recents-list" id="recents-list">
+                    <!-- Recents will be populated here -->
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="theme-segmented-control">
+                    <button class="theme-segment active" data-theme-val="light">
+                        <i data-lucide="sun"></i>
+                        <span>Light</span>
+                    </button>
+                    <button class="theme-segment" data-theme-val="dark">
+                        <i data-lucide="moon"></i>
+                        <span>Dark</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <button class="menu-toggle" id="menu-toggle">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="header-actions">
+                    <div class="header-theme-toggle">
+                        <button class="theme-icon-btn active" data-theme-val="light" title="Light Mode">
+                            <i data-lucide="sun"></i>
+                            <span class="theme-label">Light</span>
+                        </button>
+                        <button class="theme-icon-btn" data-theme-val="dark" title="Dark Mode">
+                            <i data-lucide="moon"></i>
+                            <span class="theme-label">Dark</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-container">
+                <section class="hero-section">
+                    <h1>About This Project</h1>
+                    <p class="subtitle">Understanding AI Text Detection Technology</p>
+                </section>
+
+                <div class="about-content">
+                    <div class="info-card">
+                        <h2>How it works</h2>
+                        <p>This system uses a hybrid approach to detect AI-generated text by combining two powerful methodologies:</p>
+                        
+                        <div class="method-grid">
+                            <div class="method-card">
+                                <div class="method-icon"><i data-lucide="bar-chart-3"></i></div>
+                                <h3>Stylometric Analysis</h3>
+                                <p>Analyzes linguistic patterns, sentence structure, and vocabulary richness to identify human-like vs. machine-like writing signatures.</p>
+                            </div>
+                            <div class="method-card">
+                                <div class="method-icon"><i data-lucide="cpu"></i></div>
+                                <h3>Transformer Model</h3>
+                                <p>Uses deep learning patterns to recognize the underlying statistical structures typical of modern Large Language Models (LLMs).</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h2>Our Mission</h2>
+                        <p>In an era of rapidly evolving AI, our goal is to provide transparency and tools that help distinguish between human creativity and synthetic content, promoting authenticity across the digital landscape.</p>
+                    </div>
+                </div>
+
+                <footer class="privacy-note">
+                    <i data-lucide="shield-check"></i>
+                    <div class="note-content">
+                        <strong>Your data is secure and will not be stored.</strong>
+                        <span>We respect your privacy.</span>
+                    </div>
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        const sidebar = document.getElementById('sidebar');
+        const collapseBtn = document.getElementById('collapse-btn');
+        const menuToggle = document.getElementById('menu-toggle');
+        const themeSegments = document.querySelectorAll('.theme-segment');
+        const themeIconBtns = document.querySelectorAll('.theme-icon-btn');
+        const body = document.documentElement;
+
+        // Sidebar Collapse
+        collapseBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            const icon = collapseBtn.querySelector('i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.setAttribute('data-lucide', 'chevrons-right');
+            } else {
+                icon.setAttribute('data-lucide', 'chevrons-left');
+            }
+            lucide.createIcons();
+        });
+
+        // Mobile Menu Toggle
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('mobile-active');
+        });
+
+        // Theme Switching Logic
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                body.setAttribute('data-theme', 'dark');
+            } else {
+                body.removeAttribute('data-theme');
+            }
+            localStorage.setItem('theme', theme);
+            updateThemeUI(theme);
+        }
+
+        function updateThemeUI(theme) {
+            themeSegments.forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-theme-val') === theme);
+            });
+            themeIconBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-theme-val') === theme);
+            });
+        }
+
+        themeSegments.forEach(btn => {
+            btn.addEventListener('click', () => setTheme(btn.getAttribute('data-theme-val')));
+        });
+
+        themeIconBtns.forEach(btn => {
+            btn.addEventListener('click', () => setTheme(btn.getAttribute('data-theme-val')));
+        });
+
+        // Initialize Theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
+
+        // Recents Functionality
+        const recentsBtn = document.getElementById('recents-btn');
+        const recentsPanel = document.getElementById('recents-panel');
+        const recentsList = document.getElementById('recents-list');
+        const clearRecentsBtn = document.getElementById('clear-recents');
+
+        function updateRecentsUI() {
+            const recents = JSON.parse(localStorage.getItem('recents') || '[]');
+            recentsList.innerHTML = '';
+            
+            if (recents.length === 0) {
+                recentsList.innerHTML = '<div style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; padding: 20px;">No recent scans</div>';
+                return;
+            }
+
+            recents.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'recent-item';
+                
+                // Determine tag class
+                let tagClass = 'mixed';
+                if (item.result.includes('AI')) tagClass = 'ai';
+                else if (item.result.includes('Human')) tagClass = 'human';
+
+                // Escape text for safety
+                const escapedText = item.text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+
+                div.innerHTML = `
+                    <div class="recent-item-text">${escapedText}</div>
+                    <div class="recent-item-meta">
+                        <span class="recent-tag ${tagClass}">${item.result}</span>
+                        <span>${item.date}</span>
+                    </div>
+                `;
+                div.addEventListener('click', () => {
+                    // Store the text to be loaded on home page
+                    sessionStorage.setItem('load_text', item.text);
+                    window.location.href = "{{ url_for('index') }}";
+                });
+                recentsList.appendChild(div);
+            });
+        }
+
+        recentsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const isVisible = recentsPanel.style.display !== 'none';
+            recentsPanel.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) updateRecentsUI();
+        });
+
+        clearRecentsBtn.addEventListener('click', () => {
+            localStorage.setItem('recents', '[]');
+            updateRecentsUI();
+        });
+    </script>
+</body>
+</html>

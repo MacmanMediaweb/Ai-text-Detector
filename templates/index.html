@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI vs Human Text Detection System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+</head>
+<body>
+    <div class="app-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i data-lucide="brain"></i>
+                    <span class="logo-text">AI Text Detector</span>
+                </div>
+                <button class="collapse-btn" id="collapse-btn">
+                    <i data-lucide="chevrons-left"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('index') }}" class="nav-item active">
+                    <i data-lucide="home"></i>
+                    <span class="nav-text">Home</span>
+                </a>
+                <a href="{{ url_for('about') }}" class="nav-item">
+                    <i data-lucide="info"></i>
+                    <span class="nav-text">About</span>
+                </a>
+                <a href="#" class="nav-item" id="new-chat-btn">
+                    <i data-lucide="message-square-plus"></i>
+                    <span class="nav-text">New Chat</span>
+                </a>
+                <a href="#" class="nav-item" id="projects-btn">
+                    <i data-lucide="folder"></i>
+                    <span class="nav-text">Projects</span>
+                </a>
+                <a href="#" class="nav-item" id="recents-btn">
+                    <i data-lucide="history"></i>
+                    <span class="nav-text">Recents</span>
+                </a>
+            </nav>
+
+            <div class="recents-panel" id="recents-panel" style="display: none;">
+                <div class="recents-header">
+                    <span>Recent Scans</span>
+                    <button id="clear-recents" title="Clear All">
+                        <i data-lucide="trash-2"></i>
+                    </button>
+                </div>
+                <div class="recents-list" id="recents-list">
+                    <!-- Recents will be populated here -->
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="theme-segmented-control">
+                    <button class="theme-segment active" data-theme-val="light">
+                        <i data-lucide="sun"></i>
+                        <span>Light</span>
+                    </button>
+                    <button class="theme-segment" data-theme-val="dark">
+                        <i data-lucide="moon"></i>
+                        <span>Dark</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <button class="menu-toggle" id="menu-toggle">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="header-actions">
+                    <div class="header-theme-toggle">
+                        <button class="theme-icon-btn active" data-theme-val="light" title="Light Mode">
+                            <i data-lucide="sun"></i>
+                            <span class="theme-label">Light</span>
+                        </button>
+                        <button class="theme-icon-btn" data-theme-val="dark" title="Dark Mode">
+                            <i data-lucide="moon"></i>
+                            <span class="theme-label">Dark</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-container">
+                <section class="hero-section">
+                    <h1>AI Text Detection</h1>
+                    <p class="subtitle">Detect whether a text is written by AI or a Human</p>
+                </section>
+
+                <form id="analysis-form" action="/" method="POST">
+                    <div class="input-card">
+                        <label for="input_text">Enter or paste your text below</label>
+                        <textarea name="input_text" id="input_text" placeholder="Type or paste your text here..." required>{{ text if text else '' }}</textarea>
+                        
+                        <div class="input-card-actions">
+                            <input type="file" id="file-input" style="display: none;" accept=".txt,.pdf,.docx,.doc">
+                            <button type="button" class="secondary-btn" id="attach-btn">
+                                <i data-lucide="paperclip"></i>
+                                Attach File
+                            </button>
+                            <button type="submit" class="primary-btn" id="submit-btn">
+                                <i data-lucide="sparkles"></i>
+                                Analyze Text
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Loading Spinner -->
+                <div id="loader-container" class="loader-container">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Analyzing text patterns...</div>
+                </div>
+
+                {% if result %}
+                <section class="results-container fade-in" id="results-section">
+                    <div class="result-card {{ 'mixed' if result.final == 'Mixed Signals' else '' }}">
+                        <div class="result-header">
+                            <span class="label">Final Prediction</span>
+                            <div class="prediction {{ 'ai' if result.final == 'AI-generated' else ('human' if result.final == 'Human-written' else '') }}">
+                                {{ result.final }}
+                            </div>
+                        </div>
+                        
+                        {% if result.final_conf %}
+                        <div class="confidence">Avg Confidence: {{ result.final_conf }}%</div>
+                        {% endif %}
+                        
+                        {% if result.note %}
+                        <p class="status-note">{{ result.note }}</p>
+                        {% endif %}
+                        
+                        {% if result.explanation %}
+                        <p class="explanation">"{{ result.explanation }}"</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="comparison-grid">
+                        <div class="model-sub-card">
+                            <h3>Stylometric Model</h3>
+                            <div class="mini-pred {{ 'ai' if result.stylo == 'AI-generated' else 'human' }}">
+                                {{ result.stylo }}
+                            </div>
+                            <div class="conf-badge">{{ result.stylo_conf }}% Confidence</div>
+                        </div>
+                        <div class="model-sub-card">
+                            <h3>Transformer Model</h3>
+                            <div class="mini-pred {{ 'ai' if result.trans == 'AI-generated' else 'human' }}">
+                                {{ result.trans }}
+                            </div>
+                            <div class="conf-badge">{{ result.trans_conf }}% Confidence</div>
+                        </div>
+                    </div>
+                </section>
+                {% endif %}
+
+                <footer class="privacy-note">
+                    <i data-lucide="shield-check"></i>
+                    <div class="note-content">
+                        <strong>Your data is secure and will not be stored.</strong>
+                        <span>We respect your privacy.</span>
+                    </div>
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        const sidebar = document.getElementById('sidebar');
+        const collapseBtn = document.getElementById('collapse-btn');
+        const menuToggle = document.getElementById('menu-toggle');
+        const themeSegments = document.querySelectorAll('.theme-segment');
+        const themeIconBtns = document.querySelectorAll('.theme-icon-btn');
+        const body = document.documentElement;
+
+        // Sidebar Collapse
+        collapseBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            const icon = collapseBtn.querySelector('i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.setAttribute('data-lucide', 'chevrons-right');
+            } else {
+                icon.setAttribute('data-lucide', 'chevrons-left');
+            }
+            lucide.createIcons();
+        });
+
+        // Mobile Menu Toggle
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('mobile-active');
+        });
+
+        // Theme Switching Logic
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                body.setAttribute('data-theme', 'dark');
+            } else {
+                body.removeAttribute('data-theme');
+            }
+            localStorage.setItem('theme', theme);
+            updateThemeUI(theme);
+        }
+
+        function updateThemeUI(theme) {
+            themeSegments.forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-theme-val') === theme);
+            });
+            themeIconBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-theme-val') === theme);
+            });
+        }
+
+        themeSegments.forEach(btn => {
+            btn.addEventListener('click', () => setTheme(btn.getAttribute('data-theme-val')));
+        });
+
+        themeIconBtns.forEach(btn => {
+            btn.addEventListener('click', () => setTheme(btn.getAttribute('data-theme-val')));
+        });
+
+        // Initialize Theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
+
+        const inputText = document.getElementById('input_text');
+
+        // Check for #new in URL or sessionStorage to trigger new chat or load text
+        const sessionLoadText = sessionStorage.getItem('load_text');
+        if (window.location.hash === '#new') {
+            inputText.value = '';
+            history.replaceState(null, null, ' ');
+        } else if (sessionLoadText) {
+            inputText.value = sessionLoadText;
+            sessionStorage.removeItem('load_text');
+        }
+
+        // Form handling
+        const form = document.getElementById('analysis-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const loader = document.getElementById('loader-container');
+        const results = document.getElementById('results-section');
+
+        form.addEventListener('submit', () => {
+            submitBtn.disabled = true;
+            if (results) results.style.display = 'none';
+            loader.style.display = 'flex';
+            
+            // Save to recents after a short delay (simulating result arrival)
+            // In a real app, this would be handled after the fetch/post response
+        });
+
+        // New Chat Functionality
+        const newChatBtn = document.getElementById('new-chat-btn');
+
+        newChatBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            inputText.value = '';
+            if (results) results.style.display = 'none';
+            submitBtn.disabled = false;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // Projects Functionality (Placeholder)
+        const projectsBtn = document.getElementById('projects-btn');
+        projectsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            alert('Projects feature is coming soon!');
+        });
+
+        // Attach File Functionality
+        const attachBtn = document.getElementById('attach-btn');
+        const fileInput = document.getElementById('file-input');
+
+        attachBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const fileName = file.name.toLowerCase();
+            const reader = new FileReader();
+
+            try {
+                if (fileName.endsWith('.txt')) {
+                    reader.onload = (e) => {
+                        inputText.value = e.target.result;
+                        if (results) results.style.display = 'none';
+                    };
+                    reader.readAsText(file);
+                } 
+                else if (fileName.endsWith('.pdf')) {
+                    reader.onload = async (e) => {
+                        const typedarray = new Uint8Array(e.target.result);
+                        try {
+                            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                            let fullText = '';
+                            for (let i = 1; i <= pdf.numPages; i++) {
+                                const page = await pdf.getPage(i);
+                                const textContent = await page.getTextContent();
+                                const pageText = textContent.items.map(item => item.str).join(' ');
+                                fullText += pageText + '\n';
+                            }
+                            inputText.value = fullText;
+                            if (results) results.style.display = 'none';
+                        } catch (err) {
+                            console.error('Error parsing PDF:', err);
+                            alert('Could not parse PDF file.');
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                } 
+                else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+                    reader.onload = async (e) => {
+                        try {
+                            const result = await mammoth.extractRawText({ arrayBuffer: e.target.result });
+                            inputText.value = result.value;
+                            if (results) results.style.display = 'none';
+                        } catch (err) {
+                            console.error('Error parsing Word doc:', err);
+                            alert('Could not parse Word document.');
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+            } catch (err) {
+                console.error('File processing error:', err);
+                alert('An error occurred while processing the file.');
+            }
+        });
+
+        // Recents Functionality
+        const recentsBtn = document.getElementById('recents-btn');
+        const recentsPanel = document.getElementById('recents-panel');
+        const recentsList = document.getElementById('recents-list');
+        const clearRecentsBtn = document.getElementById('clear-recents');
+
+        function updateRecentsUI() {
+            const recents = JSON.parse(localStorage.getItem('recents') || '[]');
+            recentsList.innerHTML = '';
+            
+            if (recents.length === 0) {
+                recentsList.innerHTML = '<div style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; padding: 20px;">No recent scans</div>';
+                return;
+            }
+
+            recents.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'recent-item';
+                
+                // Determine tag class
+                let tagClass = 'mixed';
+                if (item.result.includes('AI')) tagClass = 'ai';
+                else if (item.result.includes('Human')) tagClass = 'human';
+
+                // Escape text for safety
+                const escapedText = item.text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+
+                div.innerHTML = `
+                    <div class="recent-item-text">${escapedText}</div>
+                    <div class="recent-item-meta">
+                        <span class="recent-tag ${tagClass}">${item.result}</span>
+                        <span>${item.date}</span>
+                    </div>
+                `;
+                div.addEventListener('click', () => {
+                    inputText.value = item.text;
+                    if (results) results.style.display = 'none';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+                recentsList.appendChild(div);
+            });
+        }
+
+        recentsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const isVisible = recentsPanel.style.display !== 'none';
+            recentsPanel.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) updateRecentsUI();
+        });
+
+        clearRecentsBtn.addEventListener('click', () => {
+            localStorage.setItem('recents', '[]');
+            updateRecentsUI();
+        });
+
+        // Save current result to recents if it exists
+        {% if result %}
+        (function() {
+            const recents = JSON.parse(localStorage.getItem('recents') || '[]');
+            const currentText = {{ text|replace('\n', ' ')|replace('\r', ' ')|truncate(100)|tojson }};
+            const currentResult = {{ result.final|tojson }};
+            const currentDate = new Date().toLocaleDateString();
+
+            // Check if this text was already the last one added to avoid duplicates on refresh
+            if (recents.length === 0 || recents[0].text !== currentText) {
+                recents.unshift({
+                    text: currentText,
+                    result: currentResult,
+                    date: currentDate
+                });
+                // Keep only last 5
+                if (recents.length > 5) recents.pop();
+                localStorage.setItem('recents', JSON.stringify(recents));
+            }
+        })();
+        {% endif %}
+    </script>
+</body>
+</html>
